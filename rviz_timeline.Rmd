@@ -1,20 +1,32 @@
 ---
-title: "rviz_timeline"
+title: "D3 in R"
 author: "Scott Jacobs"
-date: "January 27, 2016"
-output: html_document
+date: "Feb 1, 2016"
+output: ioslides_presentation
 ---
 
+## Overview of Options
 
-```{r}
-library(devtools)
-#devtools::install_github("ramnathv/htmlwidgets")
-#devtools::install_github("timelyportfolio/timelineR")
+> 1. **htmlwidgets**
+    - < 1 yr old, very popular, maintained by Rstudio, used by Plotly
+> 2. googleVis
+    - Really cool but data and plot are hosted on their platform
+> 3. rCharts
+    - Predecessor to htmlwidgets
+> 4. ggvis
+    - ggplot2 authors, based on old javascript library
 
+---
+
+### d3kit-timeline
+
+```{r timelineR, fig.align='center', echo = F, comment = NA, message = F}
+library(knitr)
+library(htmlwidgets)
 library(timelineR)
 
-# replicate example from http://kristw.github.io/d3kit-timeline/#
-# define starwars release data used in all the examples
+#Thanks to Kenton Russell, TimelyPortfolio for timelineR
+
 rviz_data <- data.frame(
     first_commit = c(
         "10-Apr-13",
@@ -38,7 +50,7 @@ rviz_data <- data.frame(
     stringsAsFactors = FALSE
 )
 
-d3kit_timeline(
+m1 <- d3kit_timeline(
     rviz_data,
     direction = "right",
     # time is default but show as example of flexible argument types
@@ -49,9 +61,119 @@ d3kit_timeline(
         return new Date(d.first_commit).getFullYear() + ' - ' + d.name;
         }
         "
-    ),
-    width = 800,
-    height = 500
     )
+)
+
+m1
 ```
+
+
+## d3radarR
+```{r radar, cache = F, echo = F, comment = NA, message = F}
+# devtools::install_github("timelyportfolio/d3radarR")
+
+library(d3radarR)
+
+# use data from demo
+#   https://github.com/TennisVisuals/updating-radar-chart/blob/master/radarDemo.js
+json_data = jsonlite::fromJSON(
+'
+  [  
+    {  
+      "key":"Nokia Smartphone",
+      "values":[  
+        {  "axis":"Battery Life", "value":0.26 }, {  "axis":"Brand", "value":0.10 },
+        {  "axis":"Contract Cost", "value":0.30 }, {  "axis":"Design And Quality", "value":0.14 },
+        {  "axis":"Have Internet Connectivity", "value":0.22 }, {  "axis":"Large Screen", "value":0.04 },
+        {  "axis":"Price Of Device", "value":0.41 }, {  "axis":"To Be A Smartphone", "value":0.30 }
+        ]
+    },
+    {  
+      "key":"Samsung",
+      "values":[  
+        {  "axis":"Battery Life", "value":0.27 }, {  "axis":"Brand", "value":0.16 },
+        {  "axis":"Contract Cost", "value":0.35 }, {  "axis":"Design And Quality", "value":0.13 },
+        {  "axis":"Have Internet Connectivity", "value":0.20 }, {  "axis":"Large Screen", "value":0.13 },
+        {  "axis":"Price Of Device", "value":0.35 }, {  "axis":"To Be A Smartphone", "value":0.38 }
+        ]
+    },
+    {  
+      "key":"iPhone",
+      "values":[  
+        {  "axis":"Battery Life", "value":0.22 }, {  "axis":"Brand", "value":0.28 },
+        {  "axis":"Contract Cost", "value":0.29 }, {  "axis":"Design And Quality", "value":0.17 },
+        {  "axis":"Have Internet Connectivity", "value":0.22 }, {  "axis":"Large Screen", "value":0.02 },
+        {  "axis":"Price Of Device", "value":0.21 }, {  "axis":"To Be A Smartphone", "value":0.50 }
+        ]
+    }
+  ]
+',
+  simplifyDataFrame = FALSE
+)
+
+m2 <- d3radar(json_data)
+
+m2
+```
+
+## d3sunburst
+
+```{r sunburst, cache = F, echo = F, comment = NA, message = F}
+library(TraMineR)
+library(sunburstR)
+library(pipeR)
+
+# use example from TraMineR vignette
+data("mvad")
+mvad.alphab <- c(
+  "employment", "FE", "HE", "joblessness",
+  "school", "training"
+)
+mvad.seq <- seqdef(mvad, 17:86, xtstep = 6, alphabet = mvad.alphab)
+
+# to make this work, we'll compress the sequences with seqdss
+#   could also aggregate with dply later
+m3 <- seqtab( seqdss(mvad.seq), tlim = 0, format = "SPS" ) %>>%
+  attr("freq") %>>%
+  (
+    data.frame(
+      # appending "-end" is necessary for this to work
+      sequence = paste0(
+        gsub(
+          x = names(.$Freq)
+          , pattern = "(/[0-9]*)"
+          , replacement = ""
+          , perl = T
+        )
+        ,"-end"
+      )
+      ,freq = as.numeric(.$Freq)
+      ,stringsAsFactors = FALSE
+    )
+  ) %>>%
+  sunburst
+
+m3
+```
+
+##Taucharts
+
+```{r Taucharts, cache = F, echo = F, results = 'asis', comment = NA, message = F}
+# devtools::install_github("hrbrmstr/taucharts")
+library(taucharts)
+
+CO2 %>%
+  tauchart( ) %>%
+  tau_point( "conc", c("Treatment","uptake"), "Plant" ) %>%
+  tau_tooltip( ) %>%
+  tau_trendline( )
+
+```
+
+
+## Many Thanks To
+
+> - **Kenton Russell** - timelyportfolio
+> - **Ramnath Vaidyanathan** and **RStudio** for htmlwidgets
+> - Learn more at www.buildingwidgets.com
 
